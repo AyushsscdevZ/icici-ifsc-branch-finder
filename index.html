@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICICI IFSC Branch Finder</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--red:#c8102e;--dark:#85001c;--orange:#f37021}
+*{box-sizing:border-box}body{font-family:'DM Sans',sans-serif;background:#f5f7fb;color:#172033}
+h1,h2,h3,.brand{font-family:Manrope,sans-serif}
+.gradient{background:linear-gradient(120deg,#c8102e,#85001c 78%,#640018)}
+.btn{transition:all .18s ease}.btn:hover{transform:translateY(-1px)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+textarea:focus,input:focus{outline:3px solid #c8102e22;border-color:#c8102e}
+tbody tr:hover{background:#fff7f8}.scroll::-webkit-scrollbar{height:8px;width:8px}.scroll::-webkit-scrollbar-thumb{background:#d4d9e2;border-radius:20px}
+.spinner{width:16px;height:16px;border:2px solid #ffffff66;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body class="min-h-screen">
+<header class="gradient text-white">
+ <div class="max-w-7xl mx-auto px-5 md:px-8 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+  <div class="flex items-center gap-4">
+   <div class="bg-white text-[#b20b2c] rounded-xl px-3 py-3 font-extrabold tracking-widest shadow-lg brand">ICICI</div>
+   <div><div class="text-xs uppercase tracking-[.2em] text-red-100 font-bold mb-1">Branch intelligence tool</div><h1 class="text-xl md:text-2xl font-extrabold tracking-tight">IFSC Branch Address Finder</h1><p class="text-sm text-red-100 mt-1">Format branch addresses consistently. Review official details. Export clean data.</p></div>
+  </div>
+  <div class="flex items-center gap-2 text-xs bg-white/10 border border-white/20 rounded-full px-4 py-2 self-start sm:self-auto"><span class="w-2 h-2 rounded-full bg-emerald-300"></span> Bulk lookup workspace</div>
+ </div>
+</header>
+<main class="max-w-7xl mx-auto px-4 md:px-8 py-7 md:py-9">
+ <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+  <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"><div class="text-xs font-semibold text-slate-500">INPUT RECORDS</div><div id="statInput" class="text-2xl font-extrabold mt-2">0</div><div class="text-xs text-slate-400 mt-1">Codes submitted</div></div>
+  <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"><div class="text-xs font-semibold text-slate-500">RESOLVED</div><div id="statResolved" class="text-2xl font-extrabold text-emerald-600 mt-2">0</div><div class="text-xs text-slate-400 mt-1">Found in lookup source</div></div>
+  <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"><div class="text-xs font-semibold text-slate-500">NEEDS REVIEW</div><div id="statFailed" class="text-2xl font-extrabold text-amber-600 mt-2">0</div><div class="text-xs text-slate-400 mt-1">Not verified / mismatch</div></div>
+  <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"><div class="text-xs font-semibold text-slate-500">EXPORT READY</div><div id="statExport" class="text-2xl font-extrabold mt-2">No</div><div class="text-xs text-slate-400 mt-1">After processing records</div></div>
+ </div>
+ <div class="grid lg:grid-cols-[.88fr_1.12fr] gap-6 items-start">
+  <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+   <div class="p-5 md:p-6 border-b border-slate-100">
+    <div class="flex items-center gap-2 mb-2"><span class="w-8 h-8 rounded-lg bg-red-50 text-red-700 grid place-items-center font-bold">01</span><h2 class="font-extrabold text-lg">Add IFSC records</h2></div>
+    <p class="text-sm text-slate-500 leading-6">Paste one shortcode or IFSC code per line. Add city/state hints if available. For official addresses, import a spreadsheet with IFSC/code in column A and the official ICICI address in column B.</p>
+   </div>
+   <div class="p-5 md:p-6">
+    <label for="inputData" class="block text-xs uppercase tracking-wider font-bold text-slate-600 mb-2">Shortcodes / IFSC codes</label>
+    <textarea id="inputData" rows="8" class="w-full rounded-xl border border-slate-300 bg-slate-50 p-4 text-sm mono leading-6 resize-y" placeholder="0061 Bhubaneshwr&#10;ICIC0000001 New Delhi&#10;0000102 Mumbai"></textarea>
+    <div class="flex flex-wrap justify-between gap-2 mt-2 text-xs text-slate-400"><span>Example format: <span class="mono text-slate-600">0061 Bhubaneshwr</span></span><span>Shortcut: Ctrl / ⌘ + Enter</span></div>
+    <div class="grid sm:grid-cols-2 gap-3 mt-4">
+     <button id="processBtn" class="btn rounded-xl bg-[#c8102e] hover:bg-[#a50b26] text-white font-bold py-3 px-4 flex items-center justify-center gap-2"><span>⌕</span> Resolve addresses</button>
+     <button id="sampleBtn" class="btn rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-3 px-4">Load sample data</button>
+    </div>
+    <div class="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-4">
+     <div class="font-bold text-sm text-blue-950 mb-1">Import from a spreadsheet</div>
+     <p class="text-xs text-blue-900/70 leading-5 mb-3">Upload an Excel/CSV with IFSC code or shortcode in column A and the official ICICI branch address in column B (optional).</p>
+     <label class="flex items-center justify-center gap-2 rounded-lg border border-dashed border-blue-300 bg-white px-3 py-3 text-sm font-semibold text-blue-800 cursor-pointer hover:bg-blue-50"><span>↑</span> Choose .xlsx or .csv file<input id="fileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden"></label>
+     <div id="fileName" class="text-xs text-blue-800 mt-2"></div>
+    </div>
+    <div class="mt-5 flex items-start gap-2 text-xs leading-5 text-slate-500"><span class="text-amber-600">ⓘ</span><p>Address lookups require an internet connection. The automatic lookup is a convenience only. For official accuracy, paste ICICI Bank's published branch address into the Official address override column in your spreadsheet, or verify each result on ICICI Bank's website.</p></div>
+   </div>
+  </section>
+  <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+   <div class="p-5 md:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div><div class="flex items-center gap-2 mb-1"><span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 grid place-items-center font-bold">02</span><h2 class="font-extrabold text-lg">Resolved branch records</h2></div><p id="resultSubtitle" class="text-sm text-slate-500">Your results will appear here.</p></div>
+    <div class="flex gap-2 flex-wrap">
+     <button id="xlsxBtn" class="btn rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 text-xs font-bold">↓ Excel .xlsx</button>
+     <button id="csvBtn" class="btn rounded-lg bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 text-xs font-bold">↓ CSV</button>
+    </div>
+   </div>
+   <div class="p-4 border-b border-slate-100 flex flex-wrap items-center gap-2 justify-between">
+    <div id="status" class="flex items-center gap-2 text-xs text-slate-500"><span class="w-2 h-2 rounded-full bg-slate-300"></span> Ready for lookup</div>
+    <div class="flex gap-2"><button id="copyBtn" class="text-xs font-semibold border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50">Copy addresses</button><button id="resetBtn" class="text-xs font-semibold border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50">Reset</button></div>
+   </div>
+   <div class="overflow-x-auto scroll">
+    <table class="w-full text-left text-sm min-w-[900px]">
+     <thead class="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500"><tr><th class="px-4 py-3">#</th><th class="px-4 py-3">Input</th><th class="px-4 py-3">IFSC code</th><th class="px-4 py-3">Branch</th><th class="px-4 py-3">State / City</th><th class="px-4 py-3 min-w-[250px]">Full branch address</th><th class="px-4 py-3">Status</th></tr></thead>
+     <tbody id="resultsBody"><tr><td colspan="7" class="px-5 py-16 text-center"><div class="text-3xl mb-3">⌕</div><div class="font-bold text-slate-700">No records yet</div><div class="text-sm text-slate-400 mt-1">Add your codes and select “Resolve addresses”.</div></td></tr></tbody>
+    </table>
+   </div>
+   <div class="px-5 py-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-500 flex justify-between gap-3"><span>Only verified API results are marked resolved.</span><span id="rowCount">0 rows</span></div>
+  </section>
+ </div>
+ <footer class="text-center text-xs text-slate-400 mt-8 pb-4">IFSC Branch Address Finder · Independent lookup utility · Not an official ICICI Bank website</footer>
+</main>
+<div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-xl shadow-xl px-5 py-3 text-sm hidden z-50 max-w-[90vw]"></div>
+<script>
+const $ = id => document.getElementById(id);
+let results = [], busy = false, officialAddressMap = new Map();
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.remove('hidden');clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.add('hidden'),3200)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function parseLine(raw){
+ const line=raw.trim();
+ const full=line.match(/\b[A-Z]{4}0[A-Z0-9]{6}\b/i);
+ if(full) return {ifsc:full[0].toUpperCase(),original:line,hint:line.replace(full[0],'').trim()};
+ const digits=line.match(/\b\d{1,7}\b/);
+ if(digits) return {ifsc:'ICIC'+digits[0].padStart(7,'0'),original:line,hint:line.replace(digits[0],'').trim()};
+ return {ifsc:'',original:line,hint:''};
+}
+function normalize(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')}
+function formatOfficialAddress(value){const clean=String(value??'').replace(/\s+/g,' ').trim();if(!clean)return '';let a=clean.replace(/^ICICI\s+Bank\s+Ltd\.?\s*,?\s*/i,'').trim();a=a.replace(/\s*,\s*/g,', ').replace(/\s*\/\s*/g,'/').replace(/\s*;\s*/g,'; ').replace(/\s*:\s*/g,': ').replace(/\s*-\s*/g,' - ').replace(/(?:,\s*){2,}/g,', ').replace(/\s+,/g,',').trim();return 'ICICI Bank Ltd., '+a}
+function formatBranchAddress(d){
+  // Preserve source punctuation; normalize spacing without replacing the supplied address.
+  const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
+  const tidy=v=>clean(v)
+    .replace(/\s*,\s*/g, ', ')
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s*\.\s*/g, '. ')
+    .replace(/\s*;\s*/g, '; ')
+    .replace(/\s*:\s*/g, ': ')
+    .replace(/\s*-\s*/g, ' - ')
+    .replace(/(?:,\s*){2,}/g, ', ')
+    .replace(/\s+,/g, ',')
+    .trim();
+  let address=tidy(d.ADDRESS);
+  address=address.replace(/^ICICI\s+Bank\s+Ltd\.?\s*,?\s*/i,'').trim();
+  const city=tidy(d.CITY||d.CENTRE), state=tidy(d.STATE), pin=clean(d.ZIPCODE||d.PINCODE||d.PIN);
+  const normalized=normalize(address);
+  const extras=[];
+  if(city && !normalized.includes(normalize(city))) extras.push(city);
+  if(state && !normalized.includes(normalize(state))) extras.push(state);
+  if(pin && !normalized.includes(normalize(pin))) extras.push(pin);
+  if(extras.length) address=[address,...extras].filter(Boolean).join(', ');
+  // Do not invent a street address if the lookup source did not provide one.
+  return address ? 'ICICI Bank Ltd., '+address : '';
+}
+function officialBranchUrl(d){
+  const slug=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const ifsc=String(d.IFSC||'').toLowerCase().trim();
+  const state=slug(d.STATE), city=slug(d.CITY||d.CENTRE);
+  return ifsc && state && city ? `https://www.icici.bank.in/branch/${state}/${city}/${ifsc}` : 'https://www.icici.bank.in/find-atm-branch';
+}
+async function lookup(parsed){
+ if(!parsed.ifsc) return {...parsed,bank:'—',branch:'—',city:'—',state:'—',address:'',status:'Invalid input',ok:false};
+ try{
+  const response=await fetch('https://ifsc.razorpay.com/'+encodeURIComponent(parsed.ifsc),{headers:{'Accept':'application/json'}});
+  if(!response.ok) throw new Error(response.status===404?'IFSC code not found':'Lookup service unavailable');
+  const d=await response.json();
+  const r={...parsed,ifsc:d.IFSC||parsed.ifsc,bank:d.BANK||'—',branch:d.BRANCH||'—',city:d.CITY||d.CENTRE||'—',state:d.STATE||'—',address:formatOfficialAddress(officialAddressMap.get(parsed.ifsc)||officialAddressMap.get(parsed.original)||'')||formatBranchAddress(d),officialUrl:officialBranchUrl(d),status:'Resolved',ok:true};
+   if(officialAddressMap.has(parsed.ifsc)||officialAddressMap.has(parsed.original)){r.status='Official address supplied';r.officialAddressProvided=true;}
+  if(!r.address){r.status='Address unavailable — verify with ICICI Bank';r.ok=false;}
+  if(parsed.hint){
+   const hint=normalize(parsed.hint), loc=normalize(r.city+' '+r.state+' '+r.branch+' '+r.address);
+   if(hint && !loc.includes(hint) && !hint.split(/\s+/).filter(Boolean).some(word=>word.length>3 && loc.includes(normalize(word)))){
+    r.status='Resolved · check location';r.ok=true;r.warning=true;
+   }
+  }
+  return r;
+ }catch(e){return {...parsed,bank:'—',branch:'—',city:'—',state:'—',address:'',status:e.message==='Failed to fetch'?'Network error — check connection':e.message,ok:false}}
+}
+function render(){
+ const body=$('resultsBody');
+ if(!results.length){body.innerHTML='<tr><td colspan="7" class="px-5 py-16 text-center"><div class="text-3xl mb-3">⌕</div><div class="font-bold text-slate-700">No records yet</div><div class="text-sm text-slate-400 mt-1">Add your codes and select “Resolve addresses”.</div></td></tr>'}
+ else body.innerHTML=results.map((r,i)=>`<tr class="border-t border-slate-100 align-top"><td class="px-4 py-4 text-slate-400">${i+1}</td><td class="px-4 py-4 text-slate-600 text-xs max-w-[150px] break-words">${esc(r.original)}</td><td class="px-4 py-4 mono font-bold text-[#c8102e]">${esc(r.ifsc||'—')}</td><td class="px-4 py-4"><div class="font-semibold text-slate-800">${esc(r.branch)}</div><div class="text-xs text-slate-400 mt-1">${esc(r.bank)}</div></td><td class="px-4 py-4 text-xs text-slate-600">${esc(r.state)}<div class="text-slate-400 mt-1">${esc(r.city)}</div></td><td class="px-4 py-4 text-xs font-normal leading-5 text-slate-700 min-w-[250px]" style="font-weight:400"><div>${esc(r.address?fullAddress(r):'Address unavailable — verify with ICICI Bank')}</div>${r.officialUrl?`<a href="${esc(r.officialUrl)}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 text-[#c8102e] underline font-normal">Verify on ICICI Bank website ↗</a>`:''}</td><td class="px-4 py-4"><span class="inline-flex rounded-full px-2 py-1 text-[10px] font-bold ${r.ok?(r.warning?'bg-amber-50 text-amber-700':'bg-emerald-50 text-emerald-700'):'bg-red-50 text-red-700'}">${esc(r.status)}</span></td></tr>`).join('');
+ const good=results.filter(r=>r.ok).length, bad=results.length-good;
+ $('statInput').textContent=results.length;$('statResolved').textContent=good;$('statFailed').textContent=bad;$('statExport').textContent=good?'Ready':'No';
+ $('rowCount').textContent=results.length+' rows';$('resultSubtitle').textContent=results.length?`${good} resolved · ${bad} need review`:'Your results will appear here.';
+}
+async function processData(){
+ if(busy)return;
+ const lines=$('inputData').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ if(!lines.length){toast('Paste at least one shortcode or IFSC code first.');return}
+ busy=true;const btn=$('processBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Resolving records…';results=[];render();
+ $('status').innerHTML='<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Looking up branch details…';
+ for(let i=0;i<lines.length;i++){const parsed=parseLine(lines[i]);const r=await lookup(parsed);results.push(r);render();$('status').innerHTML=`<span class="w-2 h-2 rounded-full bg-amber-400"></span> Processing ${i+1} of ${lines.length}…`}
+ $('status').innerHTML=`<span class="w-2 h-2 rounded-full ${results.some(r=>!r.ok)?'bg-amber-500':'bg-emerald-500'}"></span> Lookup complete`;
+ busy=false;btn.disabled=false;btn.innerHTML='<span>⌕</span> Resolve addresses';toast(`Lookup complete: ${results.filter(r=>r.ok).length} resolved, ${results.filter(r=>!r.ok).length} need review.`);
+}
+function sentenceCase(value){
+ const s=String(value??'').replace(/\s+/g,' ').trim().toLowerCase();
+ return s.replace(/(^|[\s\-\/(.])([a-z])/g,(_,sep,ch)=>sep+ch.toUpperCase());
+}
+const ADDRESS_ORDER=['Company name','Building/plot number','Locality/area','Building complex/society','Main road/landmark','City','State','Pincode'];
+function fullAddress(r){const p=addressParts(r);return ADDRESS_ORDER.map(k=>String(p[k]||'').trim()).filter(Boolean).join(', ')}
+function addressParts(r){
+ let raw=String(r.address||'').replace(/^ICICI\s+Bank\s+Ltd\.?\s*,?\s*/i,'').trim();
+ raw=raw.replace(/\s+/g,' ').replace(/\s*,\s*/g,', ');
+ const parts=raw.split(',').map(x=>x.trim()).filter(Boolean);
+ const pinMatch=raw.match(/\b\d{6}\b/);
+ const pincode=pinMatch?pinMatch[0]:'';
+ let state=String(r.state||'').trim(), city=String(r.city||'').trim();
+ const remaining=parts.slice();
+ if(pincode){for(let i=remaining.length-1;i>=0;i--){if(remaining[i].includes(pincode)){remaining[i]=remaining[i].replace(pincode,'').replace(/[-–,\s]+$/,'').trim();if(!remaining[i])remaining.splice(i,1);break;}}}
+ const removeLastMatch=(needle)=>{if(!needle)return;for(let i=remaining.length-1;i>=0;i--){if(normalize(remaining[i])===normalize(needle)){remaining.splice(i,1);return;}}};
+ removeLastMatch(state);removeLastMatch(city);
+ const fields=remaining.filter(Boolean);
+ return {
+  'Company name':'ICICI Bank Ltd.',
+  'Building/plot number':sentenceCase(fields[0]||''),
+  'Locality/area':sentenceCase(fields[1]||''),
+  'Building complex/society':sentenceCase(fields[2]||''),
+  'Main road/landmark':sentenceCase(fields.slice(3).join(', ')),
+  'City':sentenceCase(city),
+  'State':sentenceCase(state),
+  'Pincode':pincode
+ };
+}
+function exportRows(){return results.map(r=>{const p=addressParts(r);const o={'IFSC code':r.ifsc||parseLine(r.original||'').ifsc||''};ADDRESS_ORDER.forEach(k=>o[k]=p[k]||'');o['Full address']=r.address?fullAddress(r):'';return o})}
+function exportXlsx(){
+ if(!results.length){toast('Resolve records before exporting.');return}
+ if(!window.XLSX){toast('Excel export library did not load. Try CSV export.');return}
+ const ws=XLSX.utils.json_to_sheet(exportRows());ws['!cols']=[{wch:18},{wch:22},{wch:24},{wch:28},{wch:32},{wch:40},{wch:22},{wch:22},{wch:12},{wch:90}];Object.keys(ws).forEach(k=>{if(k[0]!=='!'&&ws[k])ws[k].s={font:{bold:false}}});
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Branch Addresses');XLSX.writeFile(wb,'ICICI_Branch_Addresses.xlsx');toast('Excel file created in the requested company, building/plot, locality, complex/society, road/landmark, city, state, pincode format.')
+}
+function csvEscape(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
+function exportCsv(){if(!results.length){toast('Resolve records before exporting.');return}const rows=exportRows(), keys=Object.keys(rows[0]);const csv='\ufeff'+[keys.map(csvEscape).join(','),...rows.map(r=>keys.map(k=>csvEscape(r[k])).join(','))].join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='ICICI_Branch_Addresses.csv';a.click();URL.revokeObjectURL(a.href);toast('CSV file downloaded in the requested company, building/plot, locality, complex/society, road/landmark, city, state, pincode format.')}
+$('processBtn').addEventListener('click',processData);$('xlsxBtn').addEventListener('click',exportXlsx);$('csvBtn').addEventListener('click',exportCsv);
+$('sampleBtn').addEventListener('click',()=>{$('inputData').value='0061 Bhubaneshwr\nICIC0000001 New Delhi\n0000102 Mumbai';toast('Sample records loaded. Select Resolve addresses to look them up.')});
+$('resetBtn').addEventListener('click',()=>{$('inputData').value='';results=[];officialAddressMap=new Map();render();$('status').innerHTML='<span class="w-2 h-2 rounded-full bg-slate-300"></span> Ready for lookup';$('fileName').textContent='';toast('Inputs and results cleared.')});
+$('copyBtn').addEventListener('click',async()=>{const text=results.filter(r=>r.ok).map(r=>`${fullAddress(r)}`).join('\n');if(!text){toast('No resolved addresses to copy.');return}try{await navigator.clipboard.writeText(text);toast('Resolved addresses copied.')}catch(e){toast('Clipboard access unavailable in this browser.')}});
+$('inputData').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();processData()}});
+$('fileInput').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;$('fileName').textContent='Reading '+file.name+'…';try{if(file.name.toLowerCase().endsWith('.csv')){const text=await file.text();const lines=text.split(/\r?\n/).filter(Boolean);$('inputData').value=lines.slice(1).map(line=>line.split(',')[0].replace(/^"|"$/g,'').trim()).filter(Boolean).join('\n')||lines.map(line=>line.split(',')[0].replace(/^"|"$/g,'').trim()).join('\n')}else{if(!window.XLSX)throw new Error('Excel reader library did not load');const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});const nonempty=data.filter(row=>row.some(cell=>String(cell).trim()));const first=nonempty[0]||[];const headerish=first.some(cell=>/ifsc|short.?code|branch.?code|code/i.test(String(cell)));const rows=nonempty.slice(headerish?1:0);const vals=[];officialAddressMap=new Map();for(const row of rows){const code=String(row[0]??'').trim();const official=String(row[1]??'').trim();if(code){vals.push(code);if(official){const parsed=parseLine(code);officialAddressMap.set(parsed.ifsc,official);officialAddressMap.set(code,official);}}}$('inputData').value=vals.join('\n')}const count=$('inputData').value.split(/\r?\n/).filter(Boolean).length;$('fileName').textContent=`Loaded ${file.name} · ${count} rows`;toast('Spreadsheet imported. Review the entries, then resolve addresses.')}catch(err){$('fileName').textContent='Could not read file: '+err.message;toast('Unable to read this file. Try CSV or XLSX.')}});
+render();
+</script>
+</body></html>
